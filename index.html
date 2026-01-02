@@ -1,0 +1,1102 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ShiftSwap MVP</title>
+
+    <!-- Tailwind (CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Signature Pad (CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
+
+    <style>
+      /* Prevent iOS scroll bounce from feeling janky inside modals */
+      html,
+      body {
+        height: 100%;
+      }
+      /* Make canvases crisp on high-DPI */
+      canvas {
+        touch-action: none;
+      }
+    </style>
+  </head>
+
+  <body class="bg-slate-950 text-slate-100">
+    <!-- App Shell -->
+    <div class="min-h-screen">
+      <!-- Top Bar -->
+      <header class="sticky top-0 z-30 border-b border-white/10 bg-slate-950/80 backdrop-blur">
+        <div class="mx-auto max-w-md px-4 py-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <h1 class="text-lg font-semibold tracking-tight">ShiftSwap</h1>
+              <p class="text-xs text-slate-400">Unofficial MVP for shift swapping</p>
+            </div>
+            <button
+              id="seedBtn"
+              class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-slate-200 hover:bg-white/10 active:scale-[0.99]"
+              type="button"
+              title="Add demo shifts"
+            >
+              Seed Demo
+            </button>
+          </div>
+
+          <!-- Tabs -->
+          <div class="mt-4 flex gap-2">
+            <button
+              id="tabFeed"
+              class="flex-1 rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-sm font-medium"
+              type="button"
+            >
+              Shift Feed
+            </button>
+            <button
+              id="tabForms"
+              class="flex-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-medium text-slate-200 hover:bg-white/10"
+              type="button"
+            >
+              Forms
+            </button>
+          </div>
+
+          <!-- Filters -->
+          <div class="mt-3 grid grid-cols-3 gap-2">
+            <button
+              id="filterAll"
+              class="rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-xs font-medium"
+              type="button"
+            >
+              All
+            </button>
+            <button
+              id="filterGiveaway"
+              class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-slate-200 hover:bg-white/10"
+              type="button"
+            >
+              Giveaway
+            </button>
+            <button
+              id="filterSwap"
+              class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-slate-200 hover:bg-white/10"
+              type="button"
+            >
+              Swap
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main -->
+      <main class="mx-auto max-w-md px-4 pb-28 pt-4">
+        <!-- FEED VIEW -->
+        <section id="viewFeed" class="space-y-3">
+          <div id="emptyState" class="hidden rounded-2xl border border-white/10 bg-white/5 p-5">
+            <div class="text-sm font-semibold">No shifts posted</div>
+            <div class="mt-1 text-sm text-slate-400">
+              Tap the + button to post a shift to the marketplace.
+            </div>
+          </div>
+
+          <div id="shiftList" class="space-y-3"></div>
+        </section>
+
+        <!-- FORMS VIEW -->
+        <section id="viewForms" class="hidden space-y-3">
+          <div class="rounded-2xl border border-white/10 bg-white/5 p-5">
+            <div class="text-sm font-semibold">Digital Paperwork</div>
+            <div class="mt-1 text-sm text-slate-400">
+              Completed or pending swap forms appear here after a claim.
+            </div>
+          </div>
+
+          <div id="formsList" class="space-y-3"></div>
+
+          <div id="formsEmpty" class="hidden rounded-2xl border border-white/10 bg-white/5 p-5">
+            <div class="text-sm font-semibold">No forms yet</div>
+            <div class="mt-1 text-sm text-slate-400">
+              Claim a shift to generate a digital swap form with signatures.
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <!-- Floating Action Button -->
+      <button
+        id="fab"
+        class="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-slate-950 shadow-lg shadow-black/40 active:scale-[0.98]"
+        type="button"
+        aria-label="Post a shift"
+        title="Post a shift"
+      >
+        <span class="text-2xl leading-none">+</span>
+      </button>
+
+      <!-- POST MODAL -->
+      <div id="postModal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+
+        <div class="absolute inset-x-0 bottom-0 mx-auto max-w-md">
+          <div class="rounded-t-3xl border border-white/10 bg-slate-950 p-5 shadow-2xl shadow-black/50">
+            <div class="flex items-center justify-between">
+              <div>
+                <h2 class="text-base font-semibold">Post a Shift</h2>
+                <p class="text-xs text-slate-400">Adds a card to the feed (saved in Local Storage).</p>
+              </div>
+              <button
+                id="closePostModal"
+                class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-slate-200 hover:bg-white/10"
+                type="button"
+              >
+                Close
+              </button>
+            </div>
+
+            <form id="postForm" class="mt-4 space-y-3">
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="text-xs font-medium text-slate-300">Date</label>
+                  <input
+                    id="postDate"
+                    type="date"
+                    required
+                    class="mt-1 w-full rounded-2xl border border-white/10 bg-white/5 px-3 py-3 text-sm text-slate-100 outline-none ring-white/20 focus:ring-2"
+                  />
+                </div>
+                <div>
+                  <label class="text-xs font-medium text-slate-300">Time</label>
+                  <input
+                    id="postTime"
+                    type="text"
+                    placeholder="e.g. 5:00 PM – 1:00 AM"
+                    required
+                    class="mt-1 w-full rounded-2xl border border-white/10 bg-white/5 px-3 py-3 text-sm text-slate-100 outline-none ring-white/20 focus:ring-2"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label class="text-xs font-medium text-slate-300">Type</label>
+                <div class="mt-2 grid grid-cols-2 gap-2">
+                  <label
+                    class="flex cursor-pointer items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-3 text-sm hover:bg-white/10"
+                  >
+                    <input type="radio" name="type" value="Giveaway" class="accent-white" checked />
+                    <span class="font-medium">Giveaway</span>
+                    <span class="ml-auto text-xs text-slate-400">Pick up only</span>
+                  </label>
+
+                  <label
+                    class="flex cursor-pointer items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-3 text-sm hover:bg-white/10"
+                  >
+                    <input type="radio" name="type" value="Swap" class="accent-white" />
+                    <span class="font-medium">Swap</span>
+                    <span class="ml-auto text-xs text-slate-400">Exchange</span>
+                  </label>
+                </div>
+              </div>
+
+              <button
+                class="w-full rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-slate-950 shadow-lg shadow-black/30 active:scale-[0.99]"
+                type="submit"
+              >
+                Post Shift
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- SHIFT DETAIL / CLAIM MODAL -->
+      <div id="detailModal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+
+        <div class="absolute inset-x-0 bottom-0 mx-auto max-w-md">
+          <div class="rounded-t-3xl border border-white/10 bg-slate-950 p-5 shadow-2xl shadow-black/50">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <h2 class="text-base font-semibold">Shift Details</h2>
+                <p id="detailSub" class="mt-1 text-xs text-slate-400"></p>
+              </div>
+              <button
+                id="closeDetailModal"
+                class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-slate-200 hover:bg-white/10"
+                type="button"
+              >
+                Close
+              </button>
+            </div>
+
+            <div id="detailCard" class="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4"></div>
+
+            <div class="mt-4 space-y-2">
+              <button
+                id="claimBtn"
+                class="w-full rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-slate-950 shadow-lg shadow-black/30 active:scale-[0.99]"
+                type="button"
+              >
+                Claim
+              </button>
+
+              <button
+                id="deleteBtn"
+                class="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-200 hover:bg-white/10 active:scale-[0.99]"
+                type="button"
+              >
+                Delete Post
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DIGITAL SWAP FORM MODAL -->
+      <div id="formModal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/70 backdrop-blur-sm"></div>
+
+        <div class="absolute inset-x-0 bottom-0 mx-auto max-w-md">
+          <div class="max-h-[92vh] overflow-auto rounded-t-3xl border border-white/10 bg-slate-950 p-5 shadow-2xl shadow-black/50">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <h2 class="text-base font-semibold">Digital Swap Form</h2>
+                <p class="mt-1 text-xs text-slate-400">
+                  Mimics the staffroom paper form. Two signatures required.
+                </p>
+              </div>
+              <button
+                id="closeFormModal"
+                class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-slate-200 hover:bg-white/10"
+                type="button"
+              >
+                Close
+              </button>
+            </div>
+
+            <div id="formSummary" class="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4"></div>
+
+            <div class="mt-4 space-y-4">
+              <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+                <div class="flex items-center justify-between">
+                  <div class="text-sm font-semibold">Employee A Signature</div>
+                  <div class="flex gap-2">
+                    <button
+                      id="clearA"
+                      type="button"
+                      class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-slate-200 hover:bg-white/10"
+                    >
+                      Clear
+                    </button>
+                    <button
+                      id="saveA"
+                      type="button"
+                      class="rounded-xl bg-white px-3 py-2 text-xs font-semibold text-slate-950 active:scale-[0.99]"
+                    >
+                      Save
+                    </button>
+                  </div>
+                </div>
+                <p class="mt-1 text-xs text-slate-400">Person giving the shift (or initiating the swap).</p>
+                <div class="mt-3 overflow-hidden rounded-2xl border border-white/10 bg-slate-100">
+                  <canvas id="canvasA" class="h-40 w-full"></canvas>
+                </div>
+                <div id="statusA" class="mt-2 text-xs text-slate-400">Not saved</div>
+              </div>
+
+              <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+                <div class="flex items-center justify-between">
+                  <div class="text-sm font-semibold">Employee B Signature</div>
+                  <div class="flex gap-2">
+                    <button
+                      id="clearB"
+                      type="button"
+                      class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-slate-200 hover:bg-white/10"
+                    >
+                      Clear
+                    </button>
+                    <button
+                      id="saveB"
+                      type="button"
+                      class="rounded-xl bg-white px-3 py-2 text-xs font-semibold text-slate-950 active:scale-[0.99]"
+                    >
+                      Save
+                    </button>
+                  </div>
+                </div>
+                <p class="mt-1 text-xs text-slate-400">Person picking up the shift (or accepting the swap).</p>
+                <div class="mt-3 overflow-hidden rounded-2xl border border-white/10 bg-slate-100">
+                  <canvas id="canvasB" class="h-40 w-full"></canvas>
+                </div>
+                <div id="statusB" class="mt-2 text-xs text-slate-400">Not saved</div>
+              </div>
+
+              <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+                <div class="text-sm font-semibold">Manager Approval</div>
+                <p class="mt-1 text-xs text-slate-400">
+                  Placeholder. Without UKG API access, this stays unofficial.
+                </p>
+
+                <div class="mt-3 flex items-center justify-between gap-3">
+                  <label class="flex items-center gap-2 text-sm">
+                    <input id="mgrApproved" type="checkbox" class="h-4 w-4 accent-white" />
+                    <span>Approved</span>
+                  </label>
+
+                  <button
+                    id="finalizeForm"
+                    type="button"
+                    class="rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-slate-950 shadow-lg shadow-black/30 active:scale-[0.99]"
+                  >
+                    Finalize Form
+                  </button>
+                </div>
+
+                <div id="finalizeStatus" class="mt-2 text-xs text-slate-400">
+                  Needs two saved signatures.
+                </div>
+              </div>
+
+              <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+                <div class="text-sm font-semibold">Export</div>
+                <p class="mt-1 text-xs text-slate-400">Copies a compact summary to clipboard for demo.</p>
+                <button
+                  id="copySummary"
+                  type="button"
+                  class="mt-3 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-200 hover:bg-white/10 active:scale-[0.99]"
+                >
+                  Copy Summary
+                </button>
+                <div id="copyStatus" class="mt-2 text-xs text-slate-400"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Toast -->
+      <div
+        id="toast"
+        class="pointer-events-none fixed left-1/2 top-4 z-[60] hidden -translate-x-1/2 rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-sm text-slate-100 shadow-lg shadow-black/40 backdrop-blur"
+      ></div>
+    </div>
+
+    <script>
+      /*******************************
+       * ShiftSwap MVP (LocalStorage)
+       *******************************/
+      const LS_KEYS = {
+        SHIFTS: "shiftswap_shifts_v1",
+        FORMS: "shiftswap_forms_v1",
+        FILTER: "shiftswap_filter_v1",
+        TAB: "shiftswap_tab_v1",
+      };
+
+      const TYPE_BADGE = {
+        Giveaway: {
+          label: "Giveaway",
+          chip: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
+          dot: "bg-emerald-400",
+        },
+        Swap: {
+          label: "Swap",
+          chip: "bg-sky-500/15 text-sky-300 border-sky-500/30",
+          dot: "bg-sky-400",
+        },
+      };
+
+      const $ = (id) => document.getElementById(id);
+
+      const state = {
+        shifts: [],
+        forms: [],
+        selectedShiftId: null,
+        selectedFormId: null,
+        filter: "All",
+        tab: "Feed",
+        pads: { A: null, B: null },
+        currentForm: null,
+      };
+
+      function uid(prefix = "id") {
+        return `${prefix}_${Math.random().toString(16).slice(2)}_${Date.now().toString(16)}`;
+      }
+
+      function load() {
+        state.shifts = safeParse(localStorage.getItem(LS_KEYS.SHIFTS), []);
+        state.forms = safeParse(localStorage.getItem(LS_KEYS.FORMS), []);
+        state.filter = localStorage.getItem(LS_KEYS.FILTER) || "All";
+        state.tab = localStorage.getItem(LS_KEYS.TAB) || "Feed";
+      }
+
+      function save() {
+        localStorage.setItem(LS_KEYS.SHIFTS, JSON.stringify(state.shifts));
+        localStorage.setItem(LS_KEYS.FORMS, JSON.stringify(state.forms));
+        localStorage.setItem(LS_KEYS.FILTER, state.filter);
+        localStorage.setItem(LS_KEYS.TAB, state.tab);
+      }
+
+      function safeParse(v, fallback) {
+        try {
+          return v ? JSON.parse(v) : fallback;
+        } catch {
+          return fallback;
+        }
+      }
+
+      function toast(msg) {
+        const el = $("toast");
+        el.textContent = msg;
+        el.classList.remove("hidden");
+        clearTimeout(toast._t);
+        toast._t = setTimeout(() => el.classList.add("hidden"), 1800);
+      }
+
+      function formatDate(iso) {
+        // iso is yyyy-mm-dd
+        const [y, m, d] = iso.split("-").map((x) => parseInt(x, 10));
+        const dt = new Date(y, m - 1, d);
+        return dt.toLocaleDateString(undefined, {
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+        });
+      }
+
+      function sortByDateTime(a, b) {
+        const ax = `${a.date} ${a.time}`;
+        const bx = `${b.date} ${b.time}`;
+        return ax.localeCompare(bx);
+      }
+
+      function visibleShifts() {
+        const open = state.shifts.filter((s) => s.status === "Open");
+        if (state.filter === "Giveaway") return open.filter((s) => s.type === "Giveaway");
+        if (state.filter === "Swap") return open.filter((s) => s.type === "Swap");
+        return open;
+      }
+
+      function render() {
+        renderTabs();
+        renderFilters();
+        renderFeed();
+        renderForms();
+      }
+
+      function renderTabs() {
+        const feedBtn = $("tabFeed");
+        const formsBtn = $("tabForms");
+        const viewFeed = $("viewFeed");
+        const viewForms = $("viewForms");
+
+        const onFeed = state.tab === "Feed";
+        viewFeed.classList.toggle("hidden", !onFeed);
+        viewForms.classList.toggle("hidden", onFeed);
+
+        setTabButtonStyles(feedBtn, onFeed);
+        setTabButtonStyles(formsBtn, !onFeed);
+
+        // FAB only on feed (keeps the demo clean)
+        $("fab").classList.toggle("hidden", !onFeed);
+      }
+
+      function setTabButtonStyles(btn, active) {
+        btn.classList.toggle("bg-white/10", active);
+        btn.classList.toggle("bg-white/5", !active);
+        btn.classList.toggle("hover:bg-white/10", !active);
+        btn.classList.toggle("text-slate-200", !active);
+      }
+
+      function renderFilters() {
+        const a = $("filterAll");
+        const g = $("filterGiveaway");
+        const s = $("filterSwap");
+
+        setFilterButtonStyles(a, state.filter === "All");
+        setFilterButtonStyles(g, state.filter === "Giveaway");
+        setFilterButtonStyles(s, state.filter === "Swap");
+      }
+
+      function setFilterButtonStyles(btn, active) {
+        btn.classList.toggle("bg-white/10", active);
+        btn.classList.toggle("bg-white/5", !active);
+        btn.classList.toggle("hover:bg-white/10", !active);
+        btn.classList.toggle("text-slate-200", !active);
+      }
+
+      function renderFeed() {
+        const list = $("shiftList");
+        const empty = $("emptyState");
+        const items = visibleShifts().sort(sortByDateTime);
+
+        list.innerHTML = "";
+        empty.classList.toggle("hidden", items.length !== 0);
+
+        for (const shift of items) {
+          const cfg = TYPE_BADGE[shift.type];
+          const card = document.createElement("button");
+          card.type = "button";
+          card.className =
+            "w-full text-left rounded-2xl border border-white/10 bg-white/5 p-4 hover:bg-white/10 active:scale-[0.99] transition";
+          card.onclick = () => openShiftDetail(shift.id);
+
+          card.innerHTML = `
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="inline-flex h-2.5 w-2.5 rounded-full ${cfg.dot}"></span>
+                  <div class="text-sm font-semibold">${formatDate(shift.date)}</div>
+                </div>
+                <div class="mt-1 text-sm text-slate-300">${escapeHtml(shift.time)}</div>
+                <div class="mt-2 text-xs text-slate-400">Posted: ${new Date(shift.createdAt).toLocaleString()}</div>
+              </div>
+              <span class="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${cfg.chip}">
+                ${cfg.label}
+              </span>
+            </div>
+          `;
+          list.appendChild(card);
+        }
+      }
+
+      function renderForms() {
+        const list = $("formsList");
+        const empty = $("formsEmpty");
+
+        const items = [...state.forms].sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+
+        list.innerHTML = "";
+        empty.classList.toggle("hidden", items.length !== 0);
+
+        for (const form of items) {
+          const shift = state.shifts.find((s) => s.id === form.shiftId);
+          const cfg = TYPE_BADGE[form.type] || TYPE_BADGE.Giveaway;
+
+          const statusChip = form.status === "Finalized"
+            ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+            : "bg-amber-500/15 text-amber-300 border-amber-500/30";
+
+          const card = document.createElement("button");
+          card.type = "button";
+          card.className =
+            "w-full text-left rounded-2xl border border-white/10 bg-white/5 p-4 hover:bg-white/10 active:scale-[0.99] transition";
+          card.onclick = () => openFormModal(form.id);
+
+          card.innerHTML = `
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="inline-flex h-2.5 w-2.5 rounded-full ${cfg.dot}"></span>
+                  <div class="text-sm font-semibold">${shift ? formatDate(shift.date) : "Shift"}</div>
+                </div>
+                <div class="mt-1 text-sm text-slate-300">${shift ? escapeHtml(shift.time) : escapeHtml(form.time)}</div>
+                <div class="mt-2 text-xs text-slate-400">Form ID: ${escapeHtml(form.id.slice(-10))}</div>
+              </div>
+              <div class="flex flex-col items-end gap-2">
+                <span class="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${cfg.chip}">
+                  ${escapeHtml(form.type)}
+                </span>
+                <span class="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${statusChip}">
+                  ${escapeHtml(form.status)}
+                </span>
+              </div>
+            </div>
+          `;
+          list.appendChild(card);
+        }
+      }
+
+      function escapeHtml(str) {
+        return String(str).replace(/[&<>"']/g, (m) => ({
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#039;",
+        }[m]));
+      }
+
+      /*********************
+       * Modal: Post Shift
+       *********************/
+      function openPostModal() {
+        $("postModal").classList.remove("hidden");
+        lockScroll(true);
+      }
+      function closePostModal() {
+        $("postModal").classList.add("hidden");
+        lockScroll(false);
+        $("postForm").reset();
+      }
+
+      /***************************
+       * Modal: Shift Detail/Claim
+       ***************************/
+      function openShiftDetail(shiftId) {
+        const shift = state.shifts.find((s) => s.id === shiftId);
+        if (!shift) return;
+
+        state.selectedShiftId = shiftId;
+
+        const cfg = TYPE_BADGE[shift.type];
+        $("detailSub").textContent = shift.type === "Giveaway"
+          ? "Pick up only."
+          : "Exchange for another time.";
+
+        $("detailCard").innerHTML = `
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <div class="text-sm font-semibold">${formatDate(shift.date)}</div>
+              <div class="mt-1 text-sm text-slate-300">${escapeHtml(shift.time)}</div>
+              <div class="mt-2 text-xs text-slate-400">Status: ${escapeHtml(shift.status)}</div>
+            </div>
+            <span class="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${cfg.chip}">
+              ${cfg.label}
+            </span>
+          </div>
+        `;
+
+        $("detailModal").classList.remove("hidden");
+        lockScroll(true);
+      }
+
+      function closeDetailModal() {
+        $("detailModal").classList.add("hidden");
+        lockScroll(false);
+        state.selectedShiftId = null;
+      }
+
+      function deleteSelectedShift() {
+        const id = state.selectedShiftId;
+        if (!id) return;
+
+        // Remove shift
+        state.shifts = state.shifts.filter((s) => s.id !== id);
+
+        // Remove any associated forms
+        state.forms = state.forms.filter((f) => f.shiftId !== id);
+
+        save();
+        render();
+        closeDetailModal();
+        toast("Deleted");
+      }
+
+      function claimSelectedShift() {
+        const id = state.selectedShiftId;
+        const shift = state.shifts.find((s) => s.id === id);
+        if (!shift) return;
+
+        // Mark shift as claimed (removes from feed)
+        shift.status = "Claimed";
+
+        // Create form record
+        const form = {
+          id: uid("form"),
+          shiftId: shift.id,
+          date: shift.date,
+          time: shift.time,
+          type: shift.type,
+          status: "Pending",
+          createdAt: new Date().toISOString(),
+          signatures: { A: null, B: null },
+          managerApproved: false,
+          finalizedAt: null,
+        };
+
+        state.forms.unshift(form);
+        save();
+        render();
+        closeDetailModal();
+
+        openFormModal(form.id);
+        toast("Form created");
+      }
+
+      /************************
+       * Modal: Digital Form
+       ************************/
+      function openFormModal(formId) {
+        const form = state.forms.find((f) => f.id === formId);
+        if (!form) return;
+
+        state.selectedFormId = formId;
+        state.currentForm = form;
+
+        $("mgrApproved").checked = !!form.managerApproved;
+
+        const badge = TYPE_BADGE[form.type] || TYPE_BADGE.Giveaway;
+        const shift = state.shifts.find((s) => s.id === form.shiftId);
+
+        $("formSummary").innerHTML = `
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <div class="text-sm font-semibold">Shift</div>
+              <div class="mt-1 text-sm text-slate-300">${shift ? formatDate(shift.date) : formatDate(form.date)}</div>
+              <div class="mt-1 text-sm text-slate-300">${escapeHtml(shift ? shift.time : form.time)}</div>
+              <div class="mt-2 text-xs text-slate-400">
+                Form Status: <span class="font-semibold text-slate-200">${escapeHtml(form.status)}</span>
+              </div>
+            </div>
+            <span class="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${badge.chip}">
+              ${escapeHtml(form.type)}
+            </span>
+          </div>
+          <div class="mt-3 grid grid-cols-2 gap-3 text-xs text-slate-400">
+            <div class="rounded-xl border border-white/10 bg-white/5 p-3">
+              <div class="text-slate-300 font-medium">Employee A</div>
+              <div class="mt-1">${form.signatures.A ? "Saved" : "Not saved"}</div>
+            </div>
+            <div class="rounded-xl border border-white/10 bg-white/5 p-3">
+              <div class="text-slate-300 font-medium">Employee B</div>
+              <div class="mt-1">${form.signatures.B ? "Saved" : "Not saved"}</div>
+            </div>
+          </div>
+        `;
+
+        $("statusA").textContent = form.signatures.A ? "Saved" : "Not saved";
+        $("statusB").textContent = form.signatures.B ? "Saved" : "Not saved";
+
+        $("finalizeStatus").textContent = form.status === "Finalized"
+          ? `Finalized: ${new Date(form.finalizedAt).toLocaleString()}`
+          : "Needs two saved signatures.";
+
+        $("copyStatus").textContent = "";
+
+        $("formModal").classList.remove("hidden");
+        lockScroll(true);
+
+        setupPads();
+        restorePadsFromForm();
+        updateFinalizeButtonState();
+      }
+
+      function closeFormModal() {
+        teardownPads();
+        $("formModal").classList.add("hidden");
+        lockScroll(false);
+        state.selectedFormId = null;
+        state.currentForm = null;
+      }
+
+      function lockScroll(lock) {
+        document.body.style.overflow = lock ? "hidden" : "";
+      }
+
+      function setupPads() {
+        // Resize canvases to device pixels
+        const canvasA = $("canvasA");
+        const canvasB = $("canvasB");
+
+        resizeCanvasToDisplaySize(canvasA);
+        resizeCanvasToDisplaySize(canvasB);
+
+        state.pads.A = new window.SignaturePad(canvasA, { minWidth: 0.8, maxWidth: 2.2 });
+        state.pads.B = new window.SignaturePad(canvasB, { minWidth: 0.8, maxWidth: 2.2 });
+
+        // Prevent page scroll while signing on touch devices
+        [canvasA, canvasB].forEach((c) => {
+          c.addEventListener("touchmove", (e) => e.preventDefault(), { passive: false });
+        });
+      }
+
+      function teardownPads() {
+        state.pads.A = null;
+        state.pads.B = null;
+      }
+
+      function resizeCanvasToDisplaySize(canvas) {
+        const ratio = Math.max(window.devicePixelRatio || 1, 1);
+        const rect = canvas.getBoundingClientRect();
+        const width = Math.floor(rect.width * ratio);
+        const height = Math.floor(rect.height * ratio);
+        if (canvas.width !== width || canvas.height !== height) {
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx.scale(ratio, ratio);
+        }
+      }
+
+      function restorePadsFromForm() {
+        const form = state.currentForm;
+        if (!form) return;
+
+        // If signatures exist, draw them back onto canvas
+        if (form.signatures.A && state.pads.A) {
+          state.pads.A.fromDataURL(form.signatures.A, { ratio: 1, width: $("canvasA").offsetWidth, height: $("canvasA").offsetHeight });
+        }
+        if (form.signatures.B && state.pads.B) {
+          state.pads.B.fromDataURL(form.signatures.B, { ratio: 1, width: $("canvasB").offsetWidth, height: $("canvasB").offsetHeight });
+        }
+      }
+
+      function clearPad(which) {
+        const pad = state.pads[which];
+        if (!pad) return;
+        pad.clear();
+        toast("Cleared");
+      }
+
+      function saveSignature(which) {
+        const form = state.currentForm;
+        const pad = state.pads[which];
+        if (!form || !pad) return;
+
+        if (pad.isEmpty()) {
+          toast("Signature empty");
+          return;
+        }
+
+        const dataUrl = pad.toDataURL("image/png");
+        form.signatures[which] = dataUrl;
+
+        if (which === "A") $("statusA").textContent = "Saved";
+        if (which === "B") $("statusB").textContent = "Saved";
+
+        save();
+        render(); // refresh Forms list + summary chips
+        openFormModal(form.id); // re-render summary and keep modal open
+        toast("Saved");
+      }
+
+      function updateFinalizeButtonState() {
+        const form = state.currentForm;
+        if (!form) return;
+
+        const canFinalize = !!(form.signatures.A && form.signatures.B);
+        $("finalizeForm").disabled = !canFinalize || form.status === "Finalized";
+        $("finalizeForm").classList.toggle("opacity-50", $("finalizeForm").disabled);
+        $("finalizeForm").classList.toggle("cursor-not-allowed", $("finalizeForm").disabled);
+      }
+
+      function finalizeCurrentForm() {
+        const form = state.currentForm;
+        if (!form) return;
+
+        if (!(form.signatures.A && form.signatures.B)) {
+          $("finalizeStatus").textContent = "Needs two saved signatures.";
+          toast("Missing signatures");
+          updateFinalizeButtonState();
+          return;
+        }
+
+        form.managerApproved = $("mgrApproved").checked;
+        form.status = "Finalized";
+        form.finalizedAt = new Date().toISOString();
+
+        save();
+        render();
+        openFormModal(form.id);
+        toast("Finalized");
+      }
+
+      async function copyCurrentSummary() {
+        const form = state.currentForm;
+        if (!form) return;
+
+        const shift = state.shifts.find((s) => s.id === form.shiftId);
+        const date = shift ? shift.date : form.date;
+        const time = shift ? shift.time : form.time;
+
+        const lines = [
+          "ShiftSwap Digital Form",
+          `Type: ${form.type}`,
+          `Date: ${date}`,
+          `Time: ${time}`,
+          `Employee A: ${form.signatures.A ? "Signed" : "Not signed"}`,
+          `Employee B: ${form.signatures.B ? "Signed" : "Not signed"}`,
+          `Manager Approved: ${form.managerApproved ? "Yes" : "No"}`,
+          `Status: ${form.status}`,
+          `Form ID: ${form.id}`,
+        ];
+
+        try {
+          await navigator.clipboard.writeText(lines.join("\n"));
+          $("copyStatus").textContent = "Copied to clipboard";
+          toast("Copied");
+        } catch {
+          $("copyStatus").textContent = "Clipboard blocked by browser";
+          toast("Blocked");
+        }
+      }
+
+      /*********************
+       * Seed Demo Content
+       *********************/
+      function seedDemo() {
+        const demo = [
+          { date: nextDateISO(1), time: "5:00 PM – 1:00 AM", type: "Giveaway" },
+          { date: nextDateISO(2), time: "12:00 PM – 8:30 PM", type: "Swap" },
+          { date: nextDateISO(3), time: "7:30 PM – 3:30 AM", type: "Giveaway" },
+          { date: nextDateISO(5), time: "9:00 AM – 5:00 PM", type: "Swap" },
+        ];
+
+        for (const d of demo) {
+          state.shifts.unshift({
+            id: uid("shift"),
+            date: d.date,
+            time: d.time,
+            type: d.type,
+            status: "Open",
+            createdAt: new Date().toISOString(),
+          });
+        }
+
+        save();
+        render();
+        toast("Seeded");
+      }
+
+      function nextDateISO(daysAhead) {
+        const dt = new Date();
+        dt.setDate(dt.getDate() + daysAhead);
+        const y = dt.getFullYear();
+        const m = String(dt.getMonth() + 1).padStart(2, "0");
+        const d = String(dt.getDate()).padStart(2, "0");
+        return `${y}-${m}-${d}`;
+      }
+
+      /***************
+       * Event Wiring
+       ***************/
+      function wire() {
+        // Tabs
+        $("tabFeed").onclick = () => {
+          state.tab = "Feed";
+          save();
+          render();
+        };
+        $("tabForms").onclick = () => {
+          state.tab = "Forms";
+          save();
+          render();
+        };
+
+        // Filters
+        $("filterAll").onclick = () => {
+          state.filter = "All";
+          save();
+          render();
+        };
+        $("filterGiveaway").onclick = () => {
+          state.filter = "Giveaway";
+          save();
+          render();
+        };
+        $("filterSwap").onclick = () => {
+          state.filter = "Swap";
+          save();
+          render();
+        };
+
+        // Seed
+        $("seedBtn").onclick = seedDemo;
+
+        // Post modal
+        $("fab").onclick = openPostModal;
+        $("closePostModal").onclick = closePostModal;
+        $("postModal").addEventListener("click", (e) => {
+          if (e.target === $("postModal").children[0]) closePostModal();
+        });
+
+        $("postForm").onsubmit = (e) => {
+          e.preventDefault();
+
+          const date = $("postDate").value;
+          const time = $("postTime").value.trim();
+          const type = document.querySelector('input[name="type"]:checked')?.value || "Giveaway";
+
+          if (!date || !time) return;
+
+          state.shifts.unshift({
+            id: uid("shift"),
+            date,
+            time,
+            type,
+            status: "Open",
+            createdAt: new Date().toISOString(),
+          });
+
+          save();
+          render();
+          closePostModal();
+          toast("Posted");
+        };
+
+        // Detail modal
+        $("closeDetailModal").onclick = closeDetailModal;
+        $("detailModal").addEventListener("click", (e) => {
+          if (e.target === $("detailModal").children[0]) closeDetailModal();
+        });
+        $("claimBtn").onclick = claimSelectedShift;
+        $("deleteBtn").onclick = deleteSelectedShift;
+
+        // Form modal
+        $("closeFormModal").onclick = closeFormModal;
+        $("formModal").addEventListener("click", (e) => {
+          if (e.target === $("formModal").children[0]) closeFormModal();
+        });
+
+        $("clearA").onclick = () => clearPad("A");
+        $("clearB").onclick = () => clearPad("B");
+        $("saveA").onclick = () => saveSignature("A");
+        $("saveB").onclick = () => saveSignature("B");
+
+        $("mgrApproved").onchange = () => {
+          const form = state.currentForm;
+          if (!form) return;
+          form.managerApproved = $("mgrApproved").checked;
+          save();
+          render();
+        };
+
+        $("finalizeForm").onclick = finalizeCurrentForm;
+        $("copySummary").onclick = copyCurrentSummary;
+
+        // Handle resize to keep signatures aligned
+        window.addEventListener("resize", () => {
+          if ($("formModal").classList.contains("hidden")) return;
+          // Re-open current form to re-init pads and restore signatures at new size
+          const id = state.selectedFormId;
+          if (id) openFormModal(id);
+        });
+      }
+
+      /***************
+       * Boot
+       ***************/
+      load();
+
+      // First run: add a couple demo items so the UI isn't empty
+      if (!state.shifts.length && !state.forms.length) {
+        state.shifts = [
+          {
+            id: uid("shift"),
+            date: nextDateISO(1),
+            time: "5:00 PM – 1:00 AM",
+            type: "Giveaway",
+            status: "Open",
+            createdAt: new Date().toISOString(),
+          },
+          {
+            id: uid("shift"),
+            date: nextDateISO(2),
+            time: "12:00 PM – 8:30 PM",
+            type: "Swap",
+            status: "Open",
+            createdAt: new Date().toISOString(),
+          },
+        ];
+        save();
+      }
+
+      // Restore last tab/filter and render
+      render();
+      wire();
+    </script>
+  </body>
+</html>
+```
