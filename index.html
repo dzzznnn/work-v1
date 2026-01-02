@@ -3,123 +3,252 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ShiftSwap | Internal Beta</title>
+    <title>ShiftSwap | Employee Portal</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
     <style>
-        .glass { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); }
-        #signature-pad { border: 2px dashed #e2e8f0; border-radius: 8px; width: 100%; height: 200px; }
-        body { -webkit-tap-highlight-color: transparent; }
+        .glass { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); }
+        .hidden { display: none; }
+        #sig-canvas { border: 1px solid #e2e8f0; border-radius: 8px; width: 100%; height: 150px; background: #f8fafc; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
     </style>
 </head>
-<body class="bg-slate-50 min-h-screen pb-24 text-slate-900 font-sans">
+<body class="bg-slate-50 min-h-screen pb-24 text-slate-900">
 
-    <header class="sticky top-0 z-30 glass border-b border-slate-200 px-4 py-4 mb-4">
+    <header class="sticky top-0 z-30 glass border-b border-slate-200 px-4 py-4">
         <div class="flex justify-between items-center max-w-md mx-auto">
-            <h1 class="text-xl font-bold tracking-tight text-indigo-600">ShiftSwap</h1>
-            <div class="flex gap-3">
-                <i data-lucide="bell" class="w-6 h-6 text-slate-500"></i>
-                <i data-lucide="user-circle" class="w-6 h-6 text-slate-500"></i>
-            </div>
+            <h1 class="text-xl font-black tracking-tight text-indigo-600">SHIFTSWAP</h1>
+            <div id="user-display" class="text-xs font-bold text-slate-500 uppercase"></div>
         </div>
     </header>
 
-    <main class="max-w-md mx-auto px-4 space-y-4">
-        <div class="flex gap-2 p-1 bg-slate-200 rounded-lg text-sm font-medium">
-            <button class="flex-1 py-2 bg-white rounded-md shadow-sm">All Shifts</button>
-            <button class="flex-1 py-2 text-slate-600">My Posts</button>
+    <main class="max-w-md mx-auto px-4 pt-4">
+        
+        <div class="flex gap-2 p-1 bg-slate-200 rounded-xl mb-6">
+            <button onclick="showTab('feed')" class="tab-btn flex-1 py-2 rounded-lg font-bold text-sm transition-all bg-white shadow-sm" id="btn-feed">Feed</button>
+            <button onclick="showTab('settings')" class="tab-btn flex-1 py-2 rounded-lg font-bold text-sm text-slate-600 transition-all" id="btn-settings">Settings</button>
         </div>
 
-        <div id="shift-feed" class="space-y-3">
-            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 active:scale-[0.98] transition-transform" onclick="openClaimModal('Friday, Oct 27', '08:00 - 16:00', 'Giveaway')">
-                <div class="flex justify-between items-start mb-2">
-                    <span class="px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider bg-green-100 text-green-700">Giveaway</span>
-                    <span class="text-slate-400 text-xs italic font-medium">Posted by Alex M.</span>
-                </div>
-                <h3 class="font-bold text-lg">Friday, Oct 27</h3>
-                <div class="flex items-center gap-2 text-slate-600 text-sm mt-1">
-                    <i data-lucide="clock" class="w-4 h-4"></i>
-                    08:00 - 16:00 (8h)
-                </div>
+        <div id="feed" class="tab-content active space-y-4">
+            <div id="empty-state" class="text-center py-10 hidden">
+                <p class="text-slate-400 italic">No shifts posted yet.</p>
             </div>
+            <div id="shift-list" class="space-y-3">
+                </div>
+        </div>
 
-            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 active:scale-[0.98] transition-transform" onclick="openClaimModal('Saturday, Oct 28', '12:00 - 20:00', 'Swap')">
-                <div class="flex justify-between items-start mb-2">
-                    <span class="px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider bg-blue-100 text-blue-700">Swap Requested</span>
-                    <span class="text-slate-400 text-xs italic font-medium">Posted by Sam R.</span>
+        <div id="settings" class="tab-content space-y-6">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                <h2 class="text-lg font-bold mb-4">My Profile</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Full Name</label>
+                        <input type="text" id="user-name" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg outline-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Staff ID (4-Digit)</label>
+                        <input type="number" id="user-id" maxlength="4" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg outline-indigo-500">
+                    </div>
+                    <button onclick="saveSettings()" class="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold">Save Profile</button>
                 </div>
-                <h3 class="font-bold text-lg text-slate-800">Saturday, Oct 28</h3>
-                <div class="flex items-center gap-2 text-slate-600 text-sm mt-1">
-                    <i data-lucide="clock" class="w-4 h-4"></i>
-                    12:00 - 20:00 (8h)
-                </div>
-                <p class="mt-2 text-xs text-indigo-500 font-medium">Looking for: Sunday morning shift</p>
             </div>
         </div>
     </main>
 
-    <button class="fixed bottom-6 right-6 w-14 h-14 bg-indigo-600 rounded-full shadow-lg flex items-center justify-center text-white active:bg-indigo-700 active:scale-95 transition-all">
-        <i data-lucide="plus" class="w-8 h-8"></i>
-    </button>
-
-    <div id="modal" class="fixed inset-0 z-50 hidden bg-black/50 flex items-end sm:items-center justify-center p-4">
-        <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-6 animate-in slide-in-from-bottom">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-bold">Claim Shift</h2>
-                <button onclick="closeModal()"><i data-lucide="x" class="w-6 h-6"></i></button>
+    <div id="post-modal" class="fixed inset-0 z-50 hidden bg-black/60 flex items-end sm:items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-2xl p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold">Post a Shift</h2>
+                <button onclick="closeModal('post-modal')"><i data-lucide="x"></i></button>
             </div>
-            
-            <div id="modal-content" class="mb-6 text-slate-600">
+            <div class="space-y-4">
+                <div class="grid grid-cols-2 gap-3">
+                    <button id="type-giveaway" onclick="setPostType('giveaway')" class="py-3 border-2 border-indigo-600 bg-indigo-50 rounded-xl font-bold text-indigo-700">Giveaway</button>
+                    <button id="type-swap" onclick="setPostType('swap')" class="py-3 border-2 border-slate-100 rounded-xl font-bold text-slate-400">Swap</button>
                 </div>
-
-            <div class="mb-4">
-                <label class="block text-sm font-medium mb-1">E-Signature</label>
-                <canvas id="signature-pad"></canvas>
-                <button onclick="signaturePad.clear()" class="text-xs text-indigo-600 mt-1 font-medium italic">Clear Signature</button>
+                <input type="date" id="shift-date" class="w-full p-4 bg-slate-50 rounded-xl border border-slate-200">
+                <input type="time" id="shift-time" class="w-full p-4 bg-slate-50 rounded-xl border border-slate-200">
+                <div id="swap-options" class="hidden space-y-2">
+                    <label class="text-xs font-bold text-slate-400 uppercase">Looking for:</label>
+                    <select id="swap-pref" class="w-full p-4 bg-slate-50 rounded-xl border border-slate-200">
+                        <option value="Earlier">Earlier Shift</option>
+                        <option value="Later">Later Shift</option>
+                        <option value="Either">Either (Earlier or Later)</option>
+                    </select>
+                </div>
+                <button onclick="submitShift()" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold text-lg">Post to Feed</button>
             </div>
-
-            <button onclick="completeClaim()" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold active:scale-[0.98] transition-transform">
-                Confirm & Generate Form
-            </button>
         </div>
     </div>
 
+    <button onclick="openPostModal()" class="fixed bottom-8 right-6 w-16 h-16 bg-indigo-600 rounded-full shadow-2xl flex items-center justify-center text-white active:scale-90 transition-all z-40">
+        <i data-lucide="plus" class="w-8 h-8"></i>
+    </button>
+
     <script>
-        // Initialize Icons
-        lucide.createIcons();
+        // App State
+        let currentPostType = 'giveaway';
+        let shifts = JSON.parse(localStorage.getItem('shifts')) || [];
+        let profile = JSON.parse(localStorage.getItem('profile')) || { name: '', id: '' };
 
-        // Signature Pad Logic
-        const canvas = document.getElementById('signature-pad');
-        const signaturePad = new SignaturePad(canvas);
+        // Init
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            renderShifts();
+            updateProfileUI();
+        });
 
-        function openClaimModal(date, time, type) {
-            document.getElementById('modal-content').innerHTML = `
-                <p class="text-sm">You are claiming the <strong>${type}</strong> for:</p>
-                <p class="text-lg font-bold text-slate-900 mt-1">${date}</p>
-                <p class="text-md">${time}</p>
-                <p class="mt-4 text-xs bg-amber-50 p-2 text-amber-700 rounded border border-amber-100">
-                    <strong>Note:</strong> This is a digital proxy. You must still verify this with the duty manager until UKG integration is approved.
-                </p>
-            `;
-            document.getElementById('modal').classList.remove('hidden');
-            // Resize canvas to fit modal
-            canvas.width = canvas.offsetWidth;
-            canvas.height = 200;
+        function updateProfileUI() {
+            document.getElementById('user-name').value = profile.name;
+            document.getElementById('user-id').value = profile.id;
+            document.getElementById('user-display').innerText = profile.name ? `User: ${profile.name}` : 'Setup Profile';
         }
 
-        function closeModal() {
-            document.getElementById('modal').classList.add('hidden');
-            signaturePad.clear();
+        function saveSettings() {
+            profile.name = document.getElementById('user-name').value;
+            profile.id = document.getElementById('user-id').value;
+            localStorage.setItem('profile', JSON.stringify(profile));
+            alert('Profile Saved!');
+            updateProfileUI();
+            showTab('feed');
         }
 
-        function completeClaim() {
-            if (signaturePad.isEmpty()) {
-                alert("Please sign to confirm the swap.");
-                return;
+        function showTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => {
+                b.classList.remove('bg-white', 'shadow-sm');
+                b.classList.add('text-slate-600');
+            });
+            document.getElementById(tab).classList.add('active');
+            document.getElementById('btn-' + tab).classList.add('bg-white', 'shadow-sm');
+            document.getElementById('btn-' + tab).classList.remove('text-slate-600');
+        }
+
+        function openPostModal() {
+            if (!profile.name) return alert("Please set your Name and ID in settings first!");
+            document.getElementById('post-modal').classList.remove('hidden');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        function setPostType(type) {
+            currentPostType = type;
+            const giveawayBtn = document.getElementById('type-giveaway');
+            const swapBtn = document.getElementById('type-swap');
+            const swapOptions = document.getElementById('swap-options');
+
+            if (type === 'giveaway') {
+                giveawayBtn.className = "py-3 border-2 border-indigo-600 bg-indigo-50 rounded-xl font-bold text-indigo-700";
+                swapBtn.className = "py-3 border-2 border-slate-100 rounded-xl font-bold text-slate-400";
+                swapOptions.classList.add('hidden');
+            } else {
+                swapBtn.className = "py-3 border-2 border-indigo-600 bg-indigo-50 rounded-xl font-bold text-indigo-700";
+                giveawayBtn.className = "py-3 border-2 border-slate-100 rounded-xl font-bold text-slate-400";
+                swapOptions.classList.remove('hidden');
             }
-            alert("Success! A digital request has been logged. Show this screen to your Duty Manager.");
-            closeModal();
+        }
+
+        function submitShift() {
+            const newShift = {
+                id: Date.now(),
+                posterName: profile.name,
+                posterId: profile.id,
+                date: document.getElementById('shift-date').value,
+                time: document.getElementById('shift-time').value,
+                type: currentPostType,
+                pref: currentPostType === 'swap' ? document.getElementById('swap-pref').value : null,
+                status: 'open',
+                offerFrom: null,
+                offerTime: null
+            };
+
+            shifts.unshift(newShift);
+            localStorage.setItem('shifts', JSON.stringify(shifts));
+            renderShifts();
+            closeModal('post-modal');
+        }
+
+        function renderShifts() {
+            const container = document.getElementById('shift-list');
+            container.innerHTML = '';
+            
+            shifts.forEach(shift => {
+                const card = document.createElement('div');
+                card.className = "bg-white p-5 rounded-2xl shadow-sm border border-slate-100";
+                
+                const isOwner = shift.posterName === profile.name;
+                const badgeColor = shift.type === 'giveaway' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700';
+                
+                let actionBtn = '';
+                if (!isOwner && shift.status === 'open') {
+                    actionBtn = `<button onclick="handleAction(${shift.id})" class="mt-4 w-full py-2 bg-slate-900 text-white rounded-lg font-bold text-sm">
+                        ${shift.type === 'giveaway' ? 'Claim Giveaway' : 'Propose Swap'}
+                    </button>`;
+                } else if (isOwner && shift.status === 'pending') {
+                    actionBtn = `
+                        <div class="mt-4 p-3 bg-amber-50 rounded-lg border border-amber-100">
+                            <p class="text-xs font-bold text-amber-700 mb-2">Offer from ${shift.offerFrom}: ${shift.offerTime}</p>
+                            <div class="flex gap-2">
+                                <button onclick="finalizeSwap(${shift.id}, true)" class="flex-1 bg-green-600 text-white py-2 rounded-md text-xs font-bold">Accept</button>
+                                <button onclick="finalizeSwap(${shift.id}, false)" class="flex-1 bg-red-500 text-white py-2 rounded-md text-xs font-bold">Decline</button>
+                            </div>
+                        </div>`;
+                }
+
+                card.innerHTML = `
+                    <div class="flex justify-between items-start mb-3">
+                        <span class="px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest ${badgeColor}">${shift.type}</span>
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter italic">By ${shift.posterName}</span>
+                    </div>
+                    <div class="text-lg font-black">${shift.date}</div>
+                    <div class="text-slate-500 font-bold text-sm flex items-center gap-1">
+                        <i data-lucide="clock" class="w-4 h-4"></i> ${shift.time}
+                        ${shift.pref ? `<span class="text-indigo-500 ml-2">(${shift.pref})</span>` : ''}
+                    </div>
+                    ${actionBtn}
+                `;
+                container.appendChild(card);
+            });
+            lucide.createIcons();
+        }
+
+        function handleAction(id) {
+            const shift = shifts.find(s => s.id === id);
+            if (shift.type === 'giveaway') {
+                if(confirm(`Claim this giveaway? This will generate a digital form with your ID: ${profile.id}`)) {
+                    shift.status = 'claimed';
+                    shift.offerFrom = profile.name;
+                    alert("Form Generated! Notify your manager.");
+                }
+            } else {
+                const time = prompt("What is your shift time for this day? (e.g. 12:00-18:00)");
+                if (time) {
+                    shift.status = 'pending';
+                    shift.offerFrom = profile.name;
+                    shift.offerTime = time;
+                    alert("Swap offer sent to poster!");
+                }
+            }
+            localStorage.setItem('shifts', JSON.stringify(shifts));
+            renderShifts();
+        }
+
+        function finalizeSwap(id, accepted) {
+            const shift = shifts.find(s => s.id === id);
+            if (accepted) {
+                shift.status = 'completed';
+                alert("Swap Finalized! Digital form ready.");
+            } else {
+                shift.status = 'open';
+                shift.offerFrom = null;
+                shift.offerTime = null;
+            }
+            localStorage.setItem('shifts', JSON.stringify(shifts));
+            renderShifts();
         }
     </script>
 </body>
